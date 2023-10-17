@@ -1,0 +1,79 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH != "main" && $CI_PIPELINE_SOURCE != "merge_request_event"
+      when: never
+    - when: always
+
+
+stages:
+  # - build
+  # - test
+  # - deploy
+  - validate
+  - plan
+  - apply
+  - destroy
+
+variables:
+  TF_VAR_ENV_NAME: testing
+  TF_ROOT: ${CI_PROJECT_DIR}/terraform/lambda
+  TF_VAR_STATE_NAME: "${TF_DIR}/terraform.tfstate"
+  BACKEND_CONFIG: backend.tfvars
+  LAMBDA_NAME: process_settlement.zip
+
+# cache:
+#   key: "${TF_ROOT}"
+#   paths:
+#     - "${TF_ROOT}/.terraform/"
+
+.common:
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
+  before_script:
+    - |
+      terraform --version
+      cd ${TF_ROOT}
+      terraform init -input=false -reconfigure -backend-config=$BACKEND_CONFIG
+  tags:
+    - docker
+
+validate_infra:
+  extends: .common
+  stage: validate
+  script:
+    - terraform validate
+  tags:
+    - docker
+
+plan_infra:
+  extends: .common
+  stage: plan
+  script:
+    - terraform plan -out=${TF_VAR_ENV_NAME}.plan -input=false
+  artifacts:
+    paths:
+      - ${TF_ROOT}/${TF_VAR_ENV_NAME}.plan
+      - ${TF_ROOT}/${LAMBDA_ZIP}
+  tags:
+    - docker
+
+## TODO : Tagi na końcu, Zmienic lambde na dockera z zipa
+apply_infra:
+  extends: .common
+  when: manual
+  stage: apply
+  script:
+    - terraform apply -input=false ${TF_ROOT}/${TF_VAR_ENV_NAME}.plan
+  tags:
+    - docker
+
+destroy_infra:
+  extends: .common
+  when: manual
+  stage: destroy
+  script:
+    - terraform destroy -input=false ${TF_ROOT}/${TF_VAR_ENV_NAME}.plan
+  tags:
+    - docker
+  
