@@ -21,11 +21,6 @@ variables:
   BACKEND_CONFIG: backend.tfvars
   LAMBDA_NAME: process_settlement.zip
 
-# cache:
-#   key: "${TF_ROOT}"
-#   paths:
-#     - "${TF_ROOT}/.terraform/"
-
 .common:
   image:
     name: hashicorp/terraform:1.6
@@ -58,7 +53,6 @@ plan_infra:
   tags:
     - docker
 
-## TODO : Tagi na końcu, Zmienic lambde na dockera z zipa
 apply_infra:
   extends: .common
   when: manual
