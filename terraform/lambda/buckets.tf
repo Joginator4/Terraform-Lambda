@@ -1,6 +1,7 @@
 resource "aws_s3_bucket" "terraform_state" {
   bucket        = var.s3_bucket_remote_state
   force_destroy = false
+
 }
 
 resource "aws_s3_bucket_versioning" "terraform_bucket_versioning" {
